@@ -4,7 +4,7 @@ import ../content
 
 var
   consoleLogger = newConsoleLogger()
-  fileLog = newFileLogger("errors.log", levelThreshold=lvlError)
+  fileLog = newFileLogger("logs/gemini.txt", levelThreshold=lvlError)
 
 proc getStatusNumber(status: statusCode): (string, bool) =
   return case status:
