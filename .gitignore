@@ -1,3 +1,6 @@
-bin/
 bin/*
 a.out
+
+ssl/*
+cert.pem
+key.pem

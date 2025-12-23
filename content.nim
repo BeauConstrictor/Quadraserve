@@ -14,12 +14,18 @@ const
   pathTraversalErrMsg = staticRead("errs/traversal.gmi")
   notFoundErrMsg = staticRead("errs/notfound.gmi")
 
-const
   redirects = {
     "": "index.gmi",
+    "/": "index.gmi",
   }.toTable
 
-proc getPath(location: string): string =
+proc getPath(originalLocation: string): string =
+  var location = originalLocation
+  if originalLocation in redirects:
+    location = redirects[originalLocation]
+
+  location = location.strip(chars={'/'}, trailing=false)
+
   if ".." in location:
     raise newException(PathTraversalError, "'..' substring detected.")
   if location.startsWith("/"):

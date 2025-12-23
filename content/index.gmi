@@ -19,23 +19,21 @@
                        ~ . _ _ _ _ . ~
 ```
 
-Hello! I'm Beau, a junior low-level systems developer and retro enthusiast. Computers were much more simple some decades ago, and I spend much of my development time trying to create modern systems that don't isolate you from each and every instruction your CPU chews through. This area fascinates me for two reasons: it helps me understand how computers function on a deeper level than programming courses could ever hope to teach, but also because I simply adore computers, and always have.
+Hello! I'm Beau, a low-level systems developer and retro enthusiast. Computers were much simpler some decades ago, so I spend much of my development time trying to create modern systems that don't isolate you from each and every instruction your CPU chews through. This area fascinates me for two reasons: it helps me understand how computers function on a deeper level than programming courses could ever hope to teach, but also because I simply adore computers, and always have.
 
-I'm not a frontend developer, so this webiste isn't some flashy design project, but you can reach these pages from 6 different internet protocols, all of which I have implemented from scratch in Nim.
+I'm not a frontend developer, so this website isn't some flashy design project, but you can reach these pages from 6 different internet protocols, all of which I have implemented from scratch in Nim.
 
 ## My projects
 
-Use at your own peril!
-
-=> /ozpex-128/index.gmi Ozpex 128 - An 8-bit computer architecture
-=> /os-128/index.gmi OS/128 - An operating system for the Ozpex 128 system
-=> /constants/index.gmi Constants - A minimal GUI & CLI for computing various constants
+=> /ozpex-128/index.gmi Ozpex 128 - An 8-bit computer architecture designed to explore CPU and OS fundamentals
+=> /os-128/index.gmi OS/128 - A kernel, filesystem and scripting language for the Ozpex 128 system, bundled into a full OS
+=> /constants/index.gmi Constants - A minimal GUI & CLI for computing various constants based on libadwaita
 => /hexaserve/index.gmi This portfolio - hosted over 6 protocols simultaneously
 => /misc/index.gmi And much more...
 
 # My skills
 
-I am a self-taught software developer, and have been for 6 years. I got started in the space as most do, by learning Python. I still use Python often as it is a highly expressive language that makes it easy to implement things fast. However, in the time since I began learning programming, I became increasingly curious about how exactly my computer executes the code I write. This has since led me down a rabbit-hole of learning C, Nim (my favorite programming language) and eventually Assembly (albeit for the 6502 architecture). This definitely helped me understand the workings of my computer, but a functioning machine is more than just a CPU. So, next, I began a project where I rebuilt all the layers of abstraction inside modern computers - this is what became the Ozpex 128, where I have designed, and implemented an emulator, for an entirely custom computer architecture and written a BIOS, bootloader, kernel, filesystem and interpreted language for.
+I am a self-taught software developer, and have been for 6 years. I got started in the space as most do, by learning Python. I still use Python often as it is a highly expressive language that makes it easy to implement things fast. However, in the time since I began programming, I have become increasingly curious about how exactly my computer executes the code I write. This has since led me down a rabbit-hole of learning C, Nim (my favorite programming language) and eventually Assembly (albeit for the 6502 architecture). This has undoubtedly improved my understanding of the workings of CPUs, but a functioning machine is more than just a CPU - so next, I began a project where I rebuilt all the layers of abstraction inside modern computers. This is what became the Ozpex 128, where I have designed, and implemented an emulator for, an entirely custom computer architecture and written a BIOS, bootloader, kernel, filesystem and programming language for that architecture.
 
 # Contact me
 
