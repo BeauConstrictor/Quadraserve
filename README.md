@@ -6,7 +6,7 @@ A minimal static web server that serves content over six different protocols
 
 These are the protocols that this server supports:
 
-- [ ] HTTP (port 8080 for now)
+- [x] HTTP (port 8080 for now)
 - [x] Gemini
 - [ ] Gopher
 - [ ] Finger
