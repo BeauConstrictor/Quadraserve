@@ -1,4 +1,4 @@
-import std/[net, logging, strutils, tables, times]
+import std/[net, logging, strutils, tables, times, strformat]
 
 import ../content
 
@@ -23,7 +23,7 @@ var
 proc `$`(msg: HttpMessage): string =
   result &= msg.startLine & "\r\n"
   for key in msg.header.keys():
-    result &= key & ": " & msg.header[key] & "\r\n"
+    result &= key.toLowerAscii() & ": " & msg.header[key] & "\r\n"
   result &= "\r\n"
   result &= msg.body
 proc recvHttpMessage(client: Socket): HttpMessage =
@@ -33,18 +33,18 @@ proc recvHttpMessage(client: Socket): HttpMessage =
     if line.strip() == "": break
     let parts = line.split(": ")
     if parts.len() < 2: raise newException(HttpError, "Malformed header")
-    result.header[parts[0]] = parts[1..^1].join(": ")
+    result.header[parts[0].toLowerAscii()] = parts[1..^1].join(": ")
   
   var contentLength: int = 0
-  if result.header.hasKey("Content-Length"):
+  if result.header.hasKey("content-length"):
     try:
-      contentLength = parseUInt(result.header["Content-Length"]).int
+      contentLength = parseUInt(result.header["content-length"]).int
     except ValueError:
       raise newException(HttpError, "Malformed Content-Length header")
 
   if contentLength == 0:
     result.body = ""
-  elif result.header.hasKey("Transfer-Encoding"):
+  elif result.header.hasKey("transfer-encoding"):
     raise newException(HttpError, "Transfer-Encoding is unsupported")
   else:
     result.body = client.recv(contentLength, timeout=recvTimeout)
@@ -56,14 +56,18 @@ proc getStatusLine(status: statusCode): string =
     of scAccessDenied: "403 Forbidden"
     of scUnhandledError: "500 Internal Server Error"
 
+proc getHttpTimestamp(): string =
+  return now().utc().format("ddd, dd MMM yyyy hh:mm:ss") & " GMT"
+
 proc handleBadRequest(client: Socket) =
-  let body = "Bad requeest."
+  let body = "Bad request."
   client.send($HttpMessage(
     startLine: "HTTP/1.1 400 Bad Request",
     header: {
       "Content-Type": "text/plain; charset=utf-8",
       "Content-Length": $len(body),
       "Connection": "close",
+      "Date": getHttpTimestamp(),
     }.toTable,
     body: body,
   ))
@@ -76,6 +80,7 @@ proc handleInvalidVersion(client: Socket) =
       "Content-Type": "text/plain; charset=utf-8",
       "Content-Length": $len(body),
       "Connection": "close",
+      "Date": getHttpTimestamp(),
     }.toTable,
     body: body,
   ))
@@ -88,6 +93,7 @@ proc handleInvalidMethod(client: Socket) =
       "Content-Type": "text/plain; charset=utf-8",
       "Content-Length": $len(body),
       "Connection": "close",
+      "Date": getHttpTimestamp(),
     }.toTable,
     body: body,
   ))
@@ -160,6 +166,7 @@ proc handleClient(client: Socket, address: string) =
         "Connection": "close",
         "Server": "Hexaserve",
         "Content-Type": "text/html; charset=utf-8",
+        "Date": getHttpTimestamp(),
       }.toTable,
       body: body,
     )
