@@ -1,15 +1,55 @@
-import std/[net, uri, logging, strutils]
+import std/[net, logging, strutils, tables, times]
 
 import ../content
 
+type
+  HttpMessage = object
+    startLine: string
+    header: Table[string, string]
+    body: string
+
+  HttpError = object of ValueError
+
 const
   htmlTemplate = staticRead("../template.html")
+  recvTimeout = 1000#ms
+
+
 
 var
   consoleLogger = newConsoleLogger()
   fileLog = newFileLogger("logs/gemini.txt", levelThreshold=lvlError) 
 
-proc getStatusNumber(status: statusCode): string =
+proc `$`(msg: HttpMessage): string =
+  result &= msg.startLine & "\r\n"
+  for key in msg.header.keys():
+    result &= key & ": " & msg.header[key] & "\r\n"
+  result &= "\r\n"
+  result &= msg.body
+proc recvHttpMessage(client: Socket): HttpMessage =
+  result.startLine = client.recvLine(timeout=recvTimeout)
+  while true:
+    let line = client.recvLine(timeout=recvTimeout)
+    if line.strip() == "": break
+    let parts = line.split(": ")
+    if parts.len() < 2: raise newException(HttpError, "Malformed header")
+    result.header[parts[0]] = parts[1..^1].join(": ")
+  
+  var contentLength: int = 0
+  if result.header.hasKey("Content-Length"):
+    try:
+      contentLength = parseUInt(result.header["Content-Length"]).int
+    except ValueError:
+      raise newException(HttpError, "Malformed Content-Length header")
+
+  if contentLength == 0:
+    result.body = ""
+  elif result.header.hasKey("Transfer-Encoding"):
+    raise newException(HttpError, "Transfer-Encoding is unsupported")
+  else:
+    result.body = client.recv(contentLength, timeout=recvTimeout)
+
+proc getStatusLine(status: statusCode): string =
   return case status:
     of scSuccess: "200 OK"
     of scNotFound: "404 Not Found"
@@ -17,31 +57,42 @@ proc getStatusNumber(status: statusCode): string =
     of scUnhandledError: "500 Internal Server Error"
 
 proc handleBadRequest(client: Socket) =
-  client.send("HTTP/1.1 400 Bad Request\r\n")
-  client.send("Content-Type: text/plain\r\n")
-  client.send("Content-Length: 13\r\n")
-  client.send("Connection: close\r\n")
-  client.send("\r\n")
-  client.send("400 Bad Request\r\n")
+  let body = "Bad requeest."
+  client.send($HttpMessage(
+    startLine: "HTTP/1.1 400 Bad Request",
+    header: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Content-Length": $len(body),
+      "Connection": "close",
+    }.toTable,
+    body: body,
+  ))
   client.close()
 proc handleInvalidVersion(client: Socket) =
-  client.send("HTTP/1.1 505 HTTP Version Not Supported\r\n")
-  client.send("Content-Type: text/plain\r\n")
-  client.send("Content-Length: 34\r\n")
-  client.send("Connection: close\r\n")
-  client.send("\r\n")
-  client.send("That http version is not supported by this server.\r\n")
+  let body = "HTTP version not supported."
+  client.send($HttpMessage(
+    startLine: "HTTP/1.1 505 HTTP Version not Supported",
+    header: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Content-Length": $len(body),
+      "Connection": "close",
+    }.toTable,
+    body: body,
+  ))
   client.close()
 proc handleInvalidMethod(client: Socket) =
-  client.send("HTTP/1.1 405 Method Not Allowed\r\n")
-  client.send("Content-Type: text/plain\r\n")
-  client.send("Content-Length: 22\r\n")
-  client.send("Connection: close\r\n")
-  client.send("Allow: GET, POST\r\n")
-  client.send("\r\n")
-  client.send("Method Not Allowed\r\n")
+  let body = "Method not allowed."
+  client.send($HttpMessage(
+    startLine: "HTTP/1.1 405 Method not Allowed",
+    header: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Content-Length": $len(body),
+      "Connection": "close",
+    }.toTable,
+    body: body,
+  ))
   client.close()
-
+  
 proc generateHtml(page: string): string =
   var article = ""
   var preformatted = false
@@ -86,31 +137,34 @@ proc generateHtml(page: string): string =
 proc handleClient(client: Socket, address: string) =
   try:
 
-    let requestLine = client.recvLine(timeout=1000, maxLength=1024).split(" ")
-    if requestLine.len() != 3:
-      handleBadRequest(client)
+    let request = client.recvHttpMessage()
+    let startLineParts = request.startLine.split(" ")
+    if not startLineParts.len() == 3:
+      client.handleBadRequest()
       return
-    if requestLine[2] != "HTTP/1.1":
-      handleInvalidVersion(client)
+    if startLineParts[2] != "HTTP/1.1":
+      client.handleInvalidVersion()
       return
-    if requestLine[0] != "GET":
-      handleInvalidMethod(client)
+    if startLineParts[0] != "GET":
+      client.handleInvalidMethod()
       return
-
-    let path = requestLine[1]
+  
+    let path = startLineParts[1]
     let (page, status) = getPage(path)
-    let statusLine = getStatusNumber(status)
+    let body = generateHtml(page)
 
-    info("[REQUEST] " & address & " " & path)
+    let response = HttpMessage(
+      startLine: "HTTP/1.1 " & getStatusLine(status),
+      header: {
+        "Content-Length": $len(body),
+        "Connection": "close",
+        "Server": "Hexaserve",
+        "Content-Type": "text/html; charset=utf-8",
+      }.toTable,
+      body: body,
+    )
 
-    let html = generateHtml(page)
-
-    client.send("HTTP/1.1 " & statusLine & "\r\n")
-    client.send("Content-Type: text/html\r\n")
-    client.send("Connection: close\r\n")
-    client.send("Content-Length: " & $len(html) & "\r\n")
-    client.send("\r\n")
-    client.send(html)
+    client.send($response)
 
   except CatchableError as err:
     error("[REQUEST/RESPONSE] " & err.msg)
