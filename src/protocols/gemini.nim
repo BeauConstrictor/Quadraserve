@@ -50,7 +50,7 @@ proc startServer() {.async.} =
 
   while true:
     let (address, client) = await socket.acceptAddr(flags={SafeDisconn})
-    ctx.wrapConnectedSocket(client, handshakeAsServer, "localhost")
+    asyncnet.wrapConnectedSocket(ctx, client, handshakeAsServer, "localhost")
     await handleClient(client, address)
 
 if isMainModule:
