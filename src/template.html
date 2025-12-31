@@ -11,14 +11,45 @@
             max-width: 70ch;
             margin: 30px;
 
-            text-align: justify;
-
+            
             margin: auto;
-            font-family: sans-serif;
-            line-height: 1.6em;
-
+            font-family: serif;
+            
             margin-top: 100px;
             margin-bottom: 200px;
+        }
+        
+        p, li {
+            line-height: 1.7rem;
+            font-size: 1.1rem;
+        }
+
+        p {
+            text-align: justify;
+        }
+
+        li {
+            list-style-type: bengali;
+        }
+
+
+        ul {
+            padding: 14px;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: sans-serif;
+        }
+
+        h1 {
+            font-size: 2rem;
+            padding-bottom: 10px;
+            border-bottom-width: 1px;
+            border-bottom-style: solid;
+        }
+
+        h2 {
+            font-size: 1.7rem;
         }
 
         pre {
@@ -42,6 +73,10 @@
             a:visited {
                 color: #b16286;
             }
+
+            h1 {
+                border-bottom: #3c383611;
+            }
         }
 
         @media (prefers-color-scheme: dark) {
@@ -55,6 +90,10 @@
             }
             a:visited {
                 color: #b16286;
+            }
+
+            h1 {
+                border-color: #ebdbb211;
             }
         }
     </style>
