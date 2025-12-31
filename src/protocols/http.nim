@@ -98,14 +98,15 @@ proc handleInvalidMethod(client: AsyncSocket) {.async.} =
   ))
   client.close()
   
-proc generateHtml(unescaped: string): string =
-  var page = unescaped
+proc escapeTextForHtml(text: string): string =
+  return text
     .replace("&",  "&amp;")
     .replace("<",  "&lt;")
     .replace(">",  "&gt;")
     .replace("\"", "&quot;")
     .replace("'",  "&#39;")
 
+proc generateHtml(page: string): string =
   var article = ""
   var preformatted = false
   var lastLineWasAListItem = false
@@ -125,21 +126,21 @@ proc generateHtml(unescaped: string): string =
       preformatted = false
       article &= "</pre>\n"
     elif preformatted:
-      article &= line & "\n"
+      article &= line.escapeTextForHtml() & "\n"
     elif line.startsWith("# "):
-      article &= "<h1>" & line[2..^1] & "</h1>\n"
+      article &= "<h1>" & line[2..^1].escapeTextForHtml() & "</h1>\n"
     elif line.startsWith("## "):
-      article &= "<h2>" & line[3..^1] & "</h2>\n"
+      article &= "<h2>" & line[3..^1].escapeTextForHtml() & "</h2>\n"
     elif line.startsWith("### "):
-      article &= "<h3>" & line[4..^1] & "</h3>\n"
+      article &= "<h3>" & line[4..^1].escapeTextForHtml() & "</h3>\n"
     elif line.startsWith("=> "):
-      let parts = line.split(" ")
+      let parts = line.escapeTextForHtml().split(" ")
       article &= "<li><a href=\"" & parts[1] & "\">" & parts[2..^1].join(" ") & "</a></li>\n"
     elif line.startsWith("* "):
-      let parts = line.split(" ")
+      let parts = line.escapeTextForHtml().split(" ")
       article &= "<li>" & line[2..^1] & "</li>\n"
     elif line.strip().len() > 0:
-      article &= "<p>" & line & "</p>\n"
+      article &= "<p>" & line.escapeTextForHtml() & "</p>\n"
 
   if lastLineWasAListItem:
     article &= "</ul>\n"

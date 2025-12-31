@@ -6,12 +6,12 @@ A minimal static web server that serves content over six different protocols
 
 These are the protocols that this server supports:
 
-- [x] HTTP (port 8080 for now)
+- [x] HTTP (port 8080 for now) (HTTPS coming later)
 - [x] Gemini
 - [ ] Gopher
 - [ ] Finger
 - [ ] FTP
-- [ ] Telnet
+- [*] Telnet
 
 Note that Hexaserve is still in a very early state and should not be used in production. All the servers are still single-threaded, so one slow client can completely block other requests. You have been warned.
 
@@ -25,13 +25,13 @@ $ ./install
 $ sudo ./serve
 ```
 
-NOTE: `./serve` requires sudo because some ports require special privileges to bind to
+NOTE: `./serve` requires sudo because some ports require special privileges to bind to.
 
-This will build the project, create an ssl certificate for your website and start the servers for every protocol. To disable a certain protocol, just delete its binary from the `bin/` directory.
+This will build the project, create an SSL certificate for your website and start the servers for every protocol. To disable a certain protocol, just delete its binary from the `bin/` directory.
 
 ## Contributing
 
-Contributions are welcome! Especially bug reports and patches.
+Contributions are welcome, especially bug reports and patches.
 
 ## License
 
