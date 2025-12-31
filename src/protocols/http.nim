@@ -17,7 +17,7 @@ const
 
 
 var
-  consoleLogger = newConsoleLogger()
+  consoleLogger = newConsoleLogger(fmtStr="HTTP/$levelname ")
   fileLog = newFileLogger("logs/gemini.txt", levelThreshold=lvlError) 
 
 proc `$`(msg: HttpMessage): string =
@@ -158,6 +158,8 @@ proc handleClient(client: Socket, address: string) =
     let path = startLineParts[1]
     let (page, status) = getPage(path)
     let body = generateHtml(page)
+
+    info("[REQUEST] " & address & " " & path)
 
     let response = HttpMessage(
       startLine: "HTTP/1.1 " & getStatusLine(status),

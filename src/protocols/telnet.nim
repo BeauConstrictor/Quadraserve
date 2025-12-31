@@ -3,30 +3,27 @@ import std/[net, uri, logging]
 import ../content
 
 var
-  consoleLogger = newConsoleLogger()
-  fileLog = newFileLogger("logs/gemini.txt", levelThreshold=lvlError)
+  consoleLogger = newConsoleLogger(fmtStr="TELNET/$levelname ")
+  fileLog = newFileLogger("logs/gemini.txt", levelThreshold=lvlError) 
+
+const
+  welcomeMessage = "**** Hexaserve Telnet Server ****\n\nEnter a path to visit:\n"
 
 proc handleClient(client: Socket, address: string) =
   try:
 
     client.send("\e[2J\e[H\n")
-    client.send("\nWelcome to BeauConstrictor's Place!\n")
-    client.send("To visit a page, just enter its path (what you would see " &
-                 "after the hostname in a URL).\n")
-    client.send("\e[H\e[2K\e[G")
-    client.send("Enter a path to visit: ")
+    client.send(welcomeMessage)
 
-    while true:
-      let urlText = client.recvLine()
-      let url = parseUri(decodeUrl(urlText))
-      let (page, _) = getPage(url.path)
+    info("[REQUEST] " & address & " ...")
 
-      info("[REQUEST] " & address & " " & url.path)
+    let path = client.recvLine()
+    client.send("Fetching " & path & "...\n")
+    let (page, _) = getPage(path)
 
-      client.send("\e[2J\e[H\n\n")
-      client.send(page)
-      client.send("\e[H\e[2K\e[G")
-      client.send("Enter a path to visit: ")
+    info("[REQUEST] " & address & " " & path)
+
+    client.send(page)
 
   except CatchableError as err:
     error("[REQUEST/RESPONSE] " & err.msg)

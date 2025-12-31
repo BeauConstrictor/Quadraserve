@@ -3,7 +3,7 @@ import std/[net, uri, logging]
 import ../content
 
 var
-  consoleLogger = newConsoleLogger()
+  consoleLogger = newConsoleLogger(fmtStr="GEMINI/$levelname ")
   fileLog = newFileLogger("logs/gemini.txt", levelThreshold=lvlError)
 
 proc getStatusNumber(status: statusCode): (string, bool) =
