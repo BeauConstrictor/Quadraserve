@@ -109,7 +109,7 @@ proc escapeTextForHtml(text: string): string =
     .replace("\"", "&quot;")
     .replace("'",  "&#39;")
 
-proc generateHtml(page: string): string =
+proc generateHtml(hostname: string, page: string): string =
   var article = ""
   var preformatted = false
   var lastLineWasAListItem = false
@@ -124,7 +124,8 @@ proc generateHtml(page: string): string =
 
     if line.startsWith("```") and not preformatted:
       preformatted = true
-      article &= "<pre>\n"
+      if line.len == 3: article &= "<pre>\n"
+      else: article &= "<pre title=\"" & line[3..^1] & "\">\n"
     elif line.startsWith("```") and preformatted:
       preformatted = false
       article &= "</pre>\n"
@@ -149,6 +150,7 @@ proc generateHtml(page: string): string =
     article &= "</ul>\n"
 
   result = htmlTemplate.replace("$CONTENT", article)
+  result = result.replace("$HOSTNAME", hostname.escapeTextForHtml())
   result = result.replace("$TITLE", page.split("\n")[0].replace("# ", ""))
 
 proc handleClient(client: AsyncSocket, address: string) {.async.} =
@@ -156,7 +158,11 @@ proc handleClient(client: AsyncSocket, address: string) {.async.} =
 
     let request = await client.recvHttpMessage()
     let startLineParts = request.startLine.split(" ")
+    
     if not startLineParts.len() == 3:
+      await client.handleBadRequest()
+      return
+    if not request.header.hasKey("host"):
       await client.handleBadRequest()
       return
     if startLineParts[2] != "HTTP/1.1":
@@ -168,7 +174,7 @@ proc handleClient(client: AsyncSocket, address: string) {.async.} =
   
     let path = startLineParts[1]
     let (page, status) = getPage(path)
-    let body = generateHtml(page)
+    let body = generateHtml(request.header["host"], page)
 
     info("[REQUEST] " & address & " " & path)
 
