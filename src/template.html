@@ -270,6 +270,20 @@
             return canvas;
         }
 
+        function setFavicon(canvas) {
+            const faviconURL = canvas.toDataURL('image/png');
+
+            let link = document.querySelector("link[rel~='icon']");
+            if (!link) {
+                link = document.createElement('link');
+                link.rel = 'icon';
+                document.head.appendChild(link);
+            }
+
+            link.href = faviconURL;
+        }
+
+
         function drawIdenticon(bg, colours) {
             const existingIdenticon = document.querySelector(".icon");
             if (existingIdenticon) {
@@ -281,12 +295,14 @@
             const iconContainer = document.querySelector(".header-content");
             iconContainer.classList.remove("js-disabled");
             iconContainer.insertAdjacentElement("afterbegin", identicon);
+
+            setFavicon(identicon);
         }
 
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         function updateColours(e) {
             if (e.matches) drawIdenticon(darkBg, darkColours);
-            else           drawIdenticon(lightBg, lightColours);
+            else drawIdenticon(lightBg, lightColours);
         }
         mediaQuery.addEventListener('change', updateColours);
         updateColours(mediaQuery);
