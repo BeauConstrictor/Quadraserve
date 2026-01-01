@@ -2,6 +2,9 @@ import std/[asyncdispatch, asyncnet, net, uri, logging]
 
 import ../content
 
+const
+  port = 1965
+
 var
   consoleLogger = newConsoleLogger(fmtStr="GEMINI/$levelname ")
   fileLog = newFileLogger("logs/gemini.txt", levelThreshold=lvlError)
@@ -45,8 +48,10 @@ proc startServer() {.async.} =
 
   let ctx = newContext(certFile="ssl/cert.pem", keyFile="ssl/key.pem")
 
-  socket.bindAddr(Port(1965))
+  socket.bindAddr(Port(port))
   socket.listen()
+
+  info("[START] Listening on port " & $port)
 
   while true:
     let (address, client) = await socket.acceptAddr(flags={SafeDisconn})

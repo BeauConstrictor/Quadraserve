@@ -2,6 +2,9 @@ import std/[asyncnet, asyncdispatch, logging, strutils, tables, times]
 
 import ../content
 
+const
+  port = 8080
+
 type
   HttpMessage = object
     startLine: string
@@ -14,7 +17,7 @@ const
   htmlTemplate = staticRead("../template.html")
 
 var
-  consoleLogger = newConsoleLogger(fmtStr="HTTP/$levelname ")
+  consoleLogger = newConsoleLogger(fmtStr="HTTP/$levelname   ")
   fileLog = newFileLogger("logs/gemini.txt", levelThreshold=lvlError) 
 
 proc `$`(msg: HttpMessage): string =
@@ -192,8 +195,10 @@ proc startServer() {.async.} =
   let socket = newAsyncSocket()
   socket.setSockOpt(OptReuseAddr, true)
 
-  socket.bindAddr(Port(8080))
+  socket.bindAddr(Port(port))
   socket.listen()
+
+  info("[START] Listening on port " & $port)
 
   while true:
     let (address, client) = await socket.acceptAddr(flags={SafeDisconn})

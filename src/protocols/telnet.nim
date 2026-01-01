@@ -2,12 +2,14 @@ import std/[net, uri, logging]
 
 import ../content
 
+const
+  welcomeMessage = "**** Hexaserve Telnet Server ****\n\nEnter a path to visit:\n"
+  port = 2323
+
 var
   consoleLogger = newConsoleLogger(fmtStr="TELNET/$levelname ")
   fileLog = newFileLogger("logs/gemini.txt", levelThreshold=lvlError) 
 
-const
-  welcomeMessage = "**** Hexaserve Telnet Server ****\n\nEnter a path to visit:\n"
 
 proc handleClient(client: Socket, address: string) =
   try:
@@ -34,8 +36,10 @@ proc startServer() =
   let socket = newSocket()
   socket.setSockOpt(OptReuseAddr, true)
 
-  socket.bindAddr(Port(2323))
+  socket.bindAddr(Port(port))
   socket.listen()
+
+  info("[START] Listening on port " & $port)
 
   while true:
     var client: Socket
