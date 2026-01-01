@@ -124,7 +124,7 @@ proc generateHtml(hostname: string, page: string): string =
 
     if line.startsWith("```") and not preformatted:
       preformatted = true
-      if line.len == 3: article &= "<pre>\n"
+      if line.len() == 3: article &= "<pre>\n"
       else: article &= "<pre title=\"" & line[3..^1] & "\">\n"
     elif line.startsWith("```") and preformatted:
       preformatted = false
