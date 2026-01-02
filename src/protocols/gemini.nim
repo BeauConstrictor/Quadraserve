@@ -1,9 +1,14 @@
-import std/[asyncdispatch, asyncnet, net, uri, logging]
-
-import ../content
+# ------------------- #
+#    GEMINI CONFIG    #
 
 const
   port = 1965
+
+# =------------------ #
+
+import std/[asyncdispatch, asyncnet, net, uri, logging]
+
+import ../content
 
 var
   consoleLogger = newConsoleLogger(fmtStr="GEMINI/$levelname ")

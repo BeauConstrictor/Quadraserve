@@ -1,10 +1,15 @@
-import std/[asyncnet, asyncdispatch, net, logging, strutils, tables, times]
-
-import ../content
+# ------------------- #
+#    GOPHER CONFIG    #
 
 const
   port = 5500
   useHttps = true
+
+# =------------------ #
+
+import std/[asyncnet, asyncdispatch, net, logging, strutils, tables, times]
+
+import ../content
 
 type
   HttpMessage = object

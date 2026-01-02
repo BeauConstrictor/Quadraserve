@@ -1,10 +1,15 @@
-import std/[net, uri, logging]
-
-import ../content
+# ------------------- #
+#    GOPHER CONFIG    #
 
 const
   welcomeMessage = "**** Hexaserve Telnet Server ****\n\nEnter a path to visit:\n"
   port = 2323
+
+# =------------------ #
+
+import std/[net, uri, logging]
+
+import ../content
 
 var
   consoleLogger = newConsoleLogger(fmtStr="TELNET/$levelname ")
