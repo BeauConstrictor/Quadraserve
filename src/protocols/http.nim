@@ -10,7 +10,7 @@ const
 
 # =------------------ #
 
-import std/[asyncnet, asyncdispatch, net, logging, strutils, tables, times]
+import std/[asyncnet, asyncdispatch, net, logging, strutils, tables, times, os]
 
 import ../content
 
@@ -208,12 +208,17 @@ proc handleClient(client: AsyncSocket, address: string) {.async.} =
     client.close()
 
 proc startServer(useTls: bool, port: uint) {.async.} =
+  if useTls and not
+   (fileExists("ssl/https.cert") and fileExists("ssl/https.key")):
+    error("[START]            Missing './ssl/https.key' and/or './ssl/https.cert'")
+
+
   let socket = newAsyncSocket()
   socket.setSockOpt(OptReuseAddr, true)
 
   var ctx: SslContext
   if useTls:
-    ctx = newContext(certFile="ssl/cert.pem", keyFile="ssl/key.pem")
+    ctx = newContext(certFile="ssl/https.cert", keyFile="ssl/https.key")
 
   socket.bindAddr(Port(port))
   socket.listen()

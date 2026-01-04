@@ -51,7 +51,7 @@ proc startServer() {.async.} =
   let socket = newAsyncSocket()
   socket.setSockOpt(OptReuseAddr, true)
 
-  let ctx = newContext(certFile="ssl/cert.pem", keyFile="ssl/key.pem")
+  let ctx = newContext(certFile="ssl/gemini.cert", keyFile="ssl/gemini.key")
 
   socket.bindAddr(Port(port))
   socket.listen()
