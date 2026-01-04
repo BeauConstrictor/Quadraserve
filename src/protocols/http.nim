@@ -1,9 +1,12 @@
 # ------------------- #
-#    GOPHER CONFIG    #
+#     HTTP CONFIG     #
 
 const
-  port = 443
+  useHttp = true
+  httpPort = 80
+
   useHttps = true
+  httpsPort = 443
 
 # =------------------ #
 
@@ -204,12 +207,12 @@ proc handleClient(client: AsyncSocket, address: string) {.async.} =
   finally:
     client.close()
 
-proc startServer() {.async.} =
+proc startServer(useTls: bool, port: uint) {.async.} =
   let socket = newAsyncSocket()
   socket.setSockOpt(OptReuseAddr, true)
 
   var ctx: SslContext
-  if useHttps:
+  if useTls:
     ctx = newContext(certFile="ssl/cert.pem", keyFile="ssl/key.pem")
 
   socket.bindAddr(Port(port))
@@ -219,12 +222,15 @@ proc startServer() {.async.} =
 
   while true:
     let (address, client) = await socket.acceptAddr(flags={SafeDisconn})
-    if useHttps:
+    if useTls:
       asyncnet.wrapConnectedSocket(ctx, client, handshakeAsServer, "localhost")
     asyncCheck handleClient(client, address)
 
 if isMainModule:
   addHandler(consoleLogger)
   addHandler(fileLog)
-  asyncCheck startServer()
+
+  if useHttps: asyncCheck startServer(true, httpsPort)
+  if useHttp: asyncCheck startServer(false, httpPort)
+
   runForever()
