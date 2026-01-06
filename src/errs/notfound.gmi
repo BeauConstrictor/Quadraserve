@@ -1,7 +1,7 @@
 # Not Found
 
 ```A large ASCII art banner with the words '404, file not found' (source: Joan G. Stark)
-     _    _     ___     _    _        _       _
+        _    _     ___     _    _        _       _
        |:|  |:|   /:::\   |:|  |:|      |_ | |  |_
        |:|  |:|  /:/'\:\  |:|  |:|      |  | |_ |_
        |:|__|:| |:|   |:| |:|__|:|           _  ___
