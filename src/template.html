@@ -34,10 +34,6 @@
             font-size: 1.1rem;
         }
 
-        /* article li {
-            list-style-type: ;
-        } */
-
         article li::marker {
             content: "\2736  ";
         }
@@ -77,6 +73,7 @@
             padding-left: 5px;
             display: block;
             font-family: sans-serif;
+            cursor: pointer;
         }
 
         header {
@@ -107,12 +104,80 @@
             float: right;
         }
 
-        .header-content.js-disabled a {
+        body.js-disabled .header-content a {
             text-align: center;
             float: inherit;
             width: 100%;
             display: block;
         }
+
+        body.js-disabled a.module-prompt {
+            cursor: not-allowed;
+        }
+
+        body.js-disabled a.module-prompt::before {
+            content: "⚠️";
+            padding-right: 6px;
+        }
+
+        .lds-ring,
+        .lds-ring div {
+            box-sizing: border-box;
+        }
+
+        .lds-ring {
+            display: inline-block;
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+
+        .lds-ring div {
+            box-sizing: border-box;
+            display: block;
+            position: absolute;
+            width: 64px;
+            height: 64px;
+            margin: 8px;
+            border: 8px solid currentColor;
+            border-radius: 50%;
+            animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+            border-color: currentColor transparent transparent transparent;
+        }
+
+        .lds-ring div:nth-child(1) {
+            animation-delay: -0.45s;
+        }
+
+        .lds-ring div:nth-child(2) {
+            animation-delay: -0.3s;
+        }
+
+        .lds-ring div:nth-child(3) {
+            animation-delay: -0.15s;
+        }
+
+        .lds-ring {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .lds-ring.hidden {
+            display: none;
+        }
+
+        @keyframes lds-ring {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+
 
         @media screen and (max-width: 70ch) {
             .header-content {
@@ -149,6 +214,10 @@
             article h1 {
                 border-color: #3c383611;
             }
+
+            body.js-disabled a.module-prompt {
+                color: #7c6f64;
+            }
         }
 
         @media (prefers-color-scheme: dark) {
@@ -180,18 +249,26 @@
             article h1 {
                 border-color: #ebdbb211;
             }
+
+            body.js-disabled a.module-prompt {
+                color: #a89984;
+            }
         }
     </style>
 </head>
 
-<body>
+<body class="js-disabled">
     <header>
-        <div class="header-content js-disabled">
+        <div class="header-content">
             <a href="/">$HOSTNAME</a>
         </div>
     </header>
 
-    <article>$CONTENT</article>
+    <article>
+        $CONTENT
+    </article>
+
+    <div class="lds-ring hidden"><div></div><div></div><div></div><div></div></div>
 
     <script>
         const darkColours = [
@@ -297,11 +374,43 @@
             const identicon = createIdenticon(bg, colours, hostnameFull);
             identicon.classList.add("icon");
             const iconContainer = document.querySelector(".header-content");
-            iconContainer.classList.remove("js-disabled");
+            document.body.classList.remove("js-disabled");
             iconContainer.insertAdjacentElement("afterbegin", identicon);
 
             setFavicon(identicon);
         }
+
+        function loadModule(path) {
+            let query = prompt("Start typing:");
+            fetch(path, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain'
+                },
+                body: query
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP POST Error ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(newPage => {
+                    document.querySelector("article").innerHTML = newPage;
+                })
+                .then(() => {
+                    history.pushState(null, '', a.dataset.path);
+                });
+        }
+
+        document.querySelectorAll(".module-prompt").forEach((a) => {
+            a.addEventListener("click", () => loadModule(a.dataset.path));
+        });
+        window.addEventListener('popstate', (event) => {
+            // if you go back from a module we executed, reload to return to
+            // original page
+            location.reload();
+        });
 
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         function updateColours(e) {
@@ -314,6 +423,18 @@
         const header = document.querySelector("header");
         header.addEventListener("click", () => location.href = "/");
         header.style.cursor = "pointer";
+
+        const article = document.querySelector("article");
+        const execCmd = "*exec-module:";
+        const loader = document.querySelector(".lds-ring");
+        if (article.innerText.startsWith(execCmd)) {
+            article.innerText = "";
+            document.title = location.hostname;
+            loader.classList.remove("hidden");
+            loadModule(article.innerText.substring(execCmd.length));
+            loader.classList.add("hidden");
+            document.title = article.querySelector("h1").innerText;
+        }
     </script>
 </body>
 

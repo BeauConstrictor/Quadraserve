@@ -31,9 +31,17 @@ proc handleClient(client: AsyncSocket, address: string) {.async.} =
 
     let urlText = await client.recvLine(maxLength=1024)
     let url = parseUri(decodeUrl(urlText))
-    let (page, status) = getPage(url.path)
+    var (page, status, fType) = getPage(url.path)
 
     info("[REQUEST]         " & address & " " & url.path)
+
+    if fType == ftModule and url.query != "":
+      page = runModule(url.path, url.query, "Gemini")
+      fType = ftGemtext
+    elif fType == ftModule:
+      await client.send("10 Start typing:\r\n")
+      client.close()
+      return
 
     let (statusNumber, shouldGiveBody) = getStatusNumber(status)
 

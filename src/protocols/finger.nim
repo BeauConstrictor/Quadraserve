@@ -107,12 +107,17 @@ proc handleClient(client: AsyncSocket, address: string) {.async.} =
   try:
 
     let path = "/" & (await client.recvLine(maxLength=1024)).strip()
-    let (gemtext, _) = getPage(path)
-    let page = translateToPlaintext(gemtext)
+    let (content, _, fType) = getPage(path)
+
+    var response = content
+    if fType == ftGemtext:
+      response = translateToPlaintext(content)
+    elif fType == ftModule:
+      response = "You cannot access this page over the finger protocol."
 
     info("[REQUEST]          " & address & " " & path)
 
-    await client.send(page)
+    await client.send(response)
 
   except CatchableError as err:
     error("[REQUEST/RESPONSE] " & err.msg)

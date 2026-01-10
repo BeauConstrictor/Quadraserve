@@ -26,7 +26,8 @@ const
 
 # =------------------ #
 
-import std/[asyncnet, asyncdispatch, net, logging, strutils, tables, times, os]
+import std/[asyncnet, asyncdispatch, net, logging, strutils, tables, times, os,
+            uri]
 
 import ../content
 
@@ -41,10 +42,12 @@ type
 
 const
   htmlTemplate = staticRead("../template.html")
+# let
+#   htmlTemplate = readFile("src/template.html")
 
 var
-  consoleLogger = newConsoleLogger(fmtStr="HTTP/$levelname   ")
-  fileLog = newFileLogger("logs/http.txt", levelThreshold=lvlError) 
+  consoleLogger = newConsoleLogger(fmtStr = "HTTP/$levelname   ")
+  fileLog = newFileLogger("logs/http.txt", levelThreshold = lvlError)
 
 proc `$`(msg: HttpMessage): string =
   result &= msg.startLine & "\r\n"
@@ -62,7 +65,7 @@ proc recvHttpMessage(client: AsyncSocket): Future[HttpMessage] {.async.} =
     if parts.len() < 2: raise newException(HttpError, "Malformed header")
     let (key, val) = (parts[0].toLowerAscii(), parts[1..^1].join(": "))
     result.header[key] = val
-  
+
   var contentLength: int = 0
   if result.header.hasKey("content-length"):
     try:
@@ -126,65 +129,74 @@ proc handleInvalidMethod(client: AsyncSocket) {.async.} =
     body: body,
   ))
   client.close()
-  
+
 proc escapeTextForHtml(text: string): string =
   return text
-    .replace("&",  "&amp;")
-    .replace("<",  "&lt;")
-    .replace(">",  "&gt;")
+    .replace("&", "&amp;")
+    .replace("<", "&lt;")
+    .replace(">", "&gt;")
     .replace("\"", "&quot;")
-    .replace("'",  "&#39;")
+    .replace("'", "&#39;")
 
-proc generateHtml(hostname: string, page: string): string =
+proc generateHtmlArticle(gemtext: string): string =
   var article = ""
   var preformatted = false
   var lastLineWasAListItem = false
 
-  for line in page.split("\n"):
+  for line in gemtext.split("\n"):
     if not lastLineWasAListItem and (line.startsWith("=> ") or line.startsWith("* ")):
-      article &= "<ul>\n"
+      result &= "<ul>\n"
       lastLineWasAListItem = true
     if lastLineWasAListItem and not (line.startsWith("=> ") or line.startsWith("* ")):
-      article &= "</ul>\n"
+      result &= "</ul>\n"
       lastLineWasAListItem = false
 
     if line.startsWith("```") and not preformatted:
       preformatted = true
-      if line.len() == 3: article &= "<pre>\n"
-      else: article &= "<pre title=\"" & line[3..^1] & "\">\n"
+      if line.len() == 3: result &= "<pre>\n"
+      else: result &= "<pre title=\"" & line[3..^1] & "\">\n"
     elif line.startsWith("```") and preformatted:
       preformatted = false
-      article &= "</pre>\n"
+      result &= "</pre>\n"
     elif preformatted:
-      article &= line.escapeTextForHtml() & "\n"
+      result &= line.escapeTextForHtml() & "\n"
     elif line.startsWith("# "):
-      article &= "<h1>" & line[2..^1].escapeTextForHtml() & "</h1>\n"
+      result &= "<h1>" & line[2..^1].escapeTextForHtml() & "</h1>\n"
     elif line.startsWith("## "):
-      article &= "<h2>" & line[3..^1].escapeTextForHtml() & "</h2>\n"
+      result &= "<h2>" & line[3..^1].escapeTextForHtml() & "</h2>\n"
     elif line.startsWith("### "):
-      article &= "<h3>" & line[4..^1].escapeTextForHtml() & "</h3>\n"
+      result &= "<h3>" & line[4..^1].escapeTextForHtml() & "</h3>\n"
     elif line.startsWith("=> "):
       let parts = line.escapeTextForHtml().split(" ")
-      article &= "<li><a href=\"" & parts[1] & "\">" & parts[2..^1].join(" ") & "</a></li>\n"
+      let label = parts[2..^1].join(" ")
+      let target = parts[1]
+      let url = parseUri(target)
+      if not url.isAbsolute() and getFileType(getPath(target)) == ftModule:
+        result &= "<li><a class=\"module-prompt\" data-path=\""
+        result &= target.escapeTextForHtml() & "\">" & label & "</a></li>"
+      else:
+        result &= "<li><a href=\"" & parts[1] & "\">" & target & "</a></li>\n"
     elif line.startsWith("* "):
       let parts = line.escapeTextForHtml().split(" ")
-      article &= "<li>" & line[2..^1] & "</li>\n"
+      result &= "<li>" & line[2..^1] & "</li>\n"
     elif line.strip().len() > 0:
-      article &= "<p>" & line.escapeTextForHtml() & "</p>\n"
+      result &= "<p>" & line.escapeTextForHtml() & "</p>\n"
 
   if lastLineWasAListItem:
-    article &= "</ul>\n"
+    result &= "</ul>\n"
 
+proc generateHtmlPage(hostname: string, gemtext: string): string =
+  let article = generateHtmlArticle(gemtext)
   result = htmlTemplate.replace("$CONTENT", article)
   result = result.replace("$HOSTNAME", hostname.escapeTextForHtml())
-  result = result.replace("$TITLE", page.split("\n")[0].replace("# ", ""))
+  result = result.replace("$TITLE", gemtext.split("\n")[0].replace("# ", ""))
 
 proc handleClient(client: AsyncSocket, address: string) {.async.} =
   try:
 
     let request = await client.recvHttpMessage()
     let startLineParts = request.startLine.split(" ")
-    
+
     if not startLineParts.len() == 3:
       await client.handleBadRequest()
       return
@@ -194,29 +206,53 @@ proc handleClient(client: AsyncSocket, address: string) {.async.} =
     if startLineParts[2] != "HTTP/1.1":
       await client.handleInvalidVersion()
       return
-    if startLineParts[0].toUpperAscii() != "GET":
+    if startLineParts[0].toUpperAscii() != "GET" and
+       startLineParts[0].toUpperAscii() != "POST":
       await client.handleInvalidMethod()
       return
-  
-    let path = startLineParts[1]
-    let (page, status) = getPage(path)
-    let body = generateHtml(request.header["host"], page)
 
+    let path = startLineParts[1]
     info("[REQUEST]          " & address & " " & path)
 
-    let response = HttpMessage(
-      startLine: "HTTP/1.1 " & getStatusLine(status),
-      header: {
-        "Content-Length": $len(body),
-        "Connection": "close",
-        "Server": "Quadraserve",
-        "Content-Type": "text/html; charset=utf-8",
-        "Date": getHttpTimestamp(),
-      }.toTable,
-      body: body,
-    )
+    if startLineParts[0].toUpperAscii() == "GET":
+      let (page, status, fType) = getPage(path)
+      var body = page
+      if fType == ftGemtext:
+        body = generateHtmlPage(request.header["host"], page)
+      elif fType == ftModule:
+        body = generateHtmlPage(
+          request.header["host"],
+          "*exec-module:" & path
+        )
 
-    await client.send($response)
+      let response = HttpMessage(
+        startLine: "HTTP/1.1 " & getStatusLine(status),
+        header: {
+          "Content-Length": $len(body),
+          "Connection": "close",
+          "Server": "Quadraserve",
+          "Content-Type": "text/html; charset=utf-8",
+          "Date": getHttpTimestamp(),
+        }.toTable,
+        body: body,
+      )
+      await client.send($response)
+
+    elif startLineParts[0].toUpperAscii() == "POST":
+      let body = generateHtmlArticle(runModule(path, request.body, "HTTP"))
+
+      let response = HttpMessage(
+        startLine: "HTTP/1.1 200",
+        header: {
+          "Content-Length": $len(body),
+          "Connection": "close",
+          "Server": "Quadraserve",
+          "Content-Type": "text/html; charset=utf-8",
+          "Date": getHttpTimestamp(),
+        }.toTable,
+        body: body,
+      )
+      await client.send($response)
 
   except CatchableError as err:
     error("[REQUEST/RESPONSE] " & err.msg)
@@ -234,7 +270,7 @@ proc startServer(useTls: bool, port: uint) {.async.} =
 
   var ctx: SslContext
   if useTls:
-    ctx = newContext(certFile="ssl/https.cert", keyFile="ssl/https.key")
+    ctx = newContext(certFile = "ssl/https.cert", keyFile = "ssl/https.key")
 
   socket.bindAddr(Port(port))
   socket.listen()
@@ -242,7 +278,7 @@ proc startServer(useTls: bool, port: uint) {.async.} =
   info("[START]            Listening on port " & $port)
 
   while true:
-    let (address, client) = await socket.acceptAddr(flags={SafeDisconn})
+    let (address, client) = await socket.acceptAddr(flags = {SafeDisconn})
     if useTls:
       asyncnet.wrapConnectedSocket(ctx, client, handshakeAsServer, "localhost")
     asyncCheck handleClient(client, address)

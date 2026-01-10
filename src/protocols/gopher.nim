@@ -24,6 +24,12 @@ var
   consoleLogger = newConsoleLogger(fmtStr="GOPHER/$levelname ")
   fileLog = newFileLogger("logs/gopher.txt", levelThreshold=lvlError)
 
+proc getItemType(fType: fileType): string =
+  case fType:
+    of ftGemtext: "1"
+    of ftRaw: "0"
+    of ftModule: "7"
+
 proc wrap(text: string, width: int): string =
   var lines = newSeq[string]()
   var inCodeBlock = false
@@ -75,33 +81,37 @@ proc wrap(text: string, width: int): string =
 
   return lines.join("\n")
 
+proc gemtextLinkToGophermap(line: string): string =
+  let parts = line.split(" ")
+
+  let target = parts[1]
+  let url = parseUri(target)
+  var name = target
+  if parts.len() > 2:
+    name = parts[2..^1].join(" ")
+
+  if url.scheme == "gopher":
+    var port = url.port
+    if port == "": port = "70"
+
+    result &= "1" & name & "\t" & url.path & "\t" & url.hostname & "\t"
+    result &= port & "\r\n"
+  elif url.isAbsolute():
+    var port = url.port
+    if port == "": port = "70"
+    result &= "h" & name & "\tURL:" & $url & "\t" & url.hostname & "\t" 
+    result &= port & "\r\n"
+  else:
+    let it = getItemType(getFileType(getPath(target)))
+    result &= it & name & "\t" & target & "\t" & host & "\t" & $port
+    result &= "\r\n"
+
 proc translateToGophermap(gemtext: string): string =
   for line in gemtext.wrap(70).split("\n"):
     if line.startsWith("```"):
       result &= "i\r\n"
     elif line.startsWith("=> "):
-      let parts = line.split(" ")
-
-      let target = parts[1]
-      let url = parseUri(target)
-      var name = target
-      if parts.len() > 2:
-        name = parts[2..^1].join(" ")
-
-      if url.scheme == "gopher":
-        var port = url.port
-        if port == "": port = "70"
-
-        result &= "1" & name & "\t" & url.path & "\t" & url.hostname & "\t"
-        result &= port & "\r\n"
-      elif url.isAbsolute():
-        var port = url.port
-        if port == "": port = "70"
-        result &= "h" & name & "\tURL:" & $url & "\t" & url.hostname & "\t" 
-        result &= port & "\r\n"
-      else:
-        result &= "1" & name & "\t" & target & "\t" & host & "\t" & $port
-        result &= "\r\n"
+      result &= gemtextLinkToGophermap(line)
     elif line.startsWith("# "):
       let text = line[2..^1]
       result &= "i" & "#".repeat(text.len()) & "\tfake\t(NULL)\t0\r\n"
@@ -123,10 +133,19 @@ proc translateToGophermap(gemtext: string): string =
 
 proc handleClient(client: AsyncSocket, address: string) {.async.} =
   try:
+    let pathTabParts = (await client.recvLine(maxLength=1024)).strip().split("\t")
+    var path = ""
+    if pathTabParts.len > 0: path = pathTabParts[0]
+    var query = ""
+    if len(pathTabParts) > 1: query = pathTabParts[1..^1].join("\t")
 
-    let path = "/" & (await client.recvLine(maxLength=1024)).strip()
-    let (gemtext, _) = getPage(path)
-    let page = gemtext.translateToGophermap()
+    let (src, _, fType) = getPage(path)
+
+    var page = src
+    if fType == ftGemtext:
+      page = src.translateToGophermap()
+    elif fType == ftModule:
+      page = path.runModule(query, "Gopher").translateToGophermap()
 
     info("[REQUEST]          " & address & " " & path)
 
