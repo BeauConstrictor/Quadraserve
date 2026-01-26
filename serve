@@ -1,11 +1,11 @@
-#!/bin/env bash
+#!/usr/bin/env bash
+set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1
 
-DIR="./bin/"
+DIR="./bin"
 LOG_FILE="./logs/runner.txt"
 
-# TODO: remove bashisms
 declare -A PIDS
 
 cleanup() {
@@ -15,30 +15,25 @@ cleanup() {
             kill "$pid"
         fi
     done
+
+    # Wait for all children to exit
+    wait
+    echo "All processes stopped."
     exit 0
 }
 
 trap cleanup SIGINT SIGTERM
 
-start_program() {
-    local prog="$1"
-    while true; do
-        "$prog" &
-        local pid=$!
-        PIDS["$prog"]=$pid
-
-        wait $pid
-        # Only log if not terminating
-        if [[ $? -ne 0 ]]; then
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - $prog exited. Restarting..." >> "$LOG_FILE"
-        fi
-    done
-}
+mkdir -p "$(dirname "$LOG_FILE")"
 
 for prog in "$DIR"/*; do
     if [[ -x "$prog" && ! -d "$prog" ]]; then
-        start_program "$prog" &
+        echo "Starting $prog"
+        "$prog" &
+        pid=$!
+        PIDS["$prog"]=$pid
     fi
 done
 
+# Wait for all programs normally
 wait
