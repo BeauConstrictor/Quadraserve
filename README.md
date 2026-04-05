@@ -1,6 +1,6 @@
 # Quadraserve
 
-Quadraserve is a simple, mostly-static web server that simultaneously serves your content over 6 different protocols - partly for fun, and partly for what that says about you :).
+Quadraserve is a simple, mostly-static web server that simultaneously serves your content over 4 different protocols - partly for fun, and partly for what that says about you :).
 
 Quadraserve uses `*.gmi` files (like a simplified Markdown) for your content, which are translated at runtime into the appropriate format for whichever format is appropriate for the protocol that the request is using. Gemtext files were chosen because they allow enough formatting to look good when translated to more stylised formats like HTML, while still being easy to reduce down to plaintext for more limited protocols.
 
