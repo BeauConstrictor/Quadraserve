@@ -40,10 +40,10 @@ type
   HttpError = object of ValueError
 
 
-const
-  htmlTemplate = staticRead("../template.html")
-# let
-#   htmlTemplate = readFile("src/template.html")
+# const
+#   htmlTemplate = staticRead("../template.html")
+let
+  htmlTemplate = readFile("src/template.html")
 
 var
   consoleLogger = newConsoleLogger(fmtStr = "HTTP/$levelname   ")
@@ -139,7 +139,6 @@ proc escapeTextForHtml(text: string): string =
     .replace("'", "&#39;")
 
 proc generateHtmlArticle(gemtext: string): string =
-  var article = ""
   var preformatted = false
   var lastLineWasAListItem = false
 
@@ -175,7 +174,7 @@ proc generateHtmlArticle(gemtext: string): string =
         result &= "<li><a class=\"module-prompt\" data-path=\""
         result &= target.escapeTextForHtml() & "\">" & label & "</a></li>"
       else:
-        result &= "<li><a href=\"" & parts[1] & "\">" & target & "</a></li>\n"
+        result &= "<li><a href=\"" & target.escapeTextForHtml() & "\">" & label & "</a></li>\n"
     elif line.startsWith("* "):
       let parts = line.escapeTextForHtml().split(" ")
       result &= "<li>" & line[2..^1] & "</li>\n"
