@@ -40,10 +40,10 @@ type
   HttpError = object of ValueError
 
 
-# const
-#   htmlTemplate = staticRead("../template.html")
-let
-  htmlTemplate = readFile("src/template.html")
+const
+  htmlTemplate = staticRead("../template.html")
+# let
+#   htmlTemplate = readFile("src/template.html")
 
 var
   consoleLogger = newConsoleLogger(fmtStr = "HTTP/$levelname   ")
