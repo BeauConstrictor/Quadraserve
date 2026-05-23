@@ -75,9 +75,6 @@
             font-family: sans-serif;
             cursor: pointer;
         }
-        article a:hover {
-            text-decoration: underline;
-        }
 
         header {
             width: 100%;
@@ -97,9 +94,6 @@
         .icon {
             display: inline;
             image-rendering: crisp-edges;
-            background-color: #1e1e2e;
-            /* padding: 5px;
-            margin-top: -5px; */
         }
 
         .header-content a {
@@ -183,48 +177,82 @@
             }
         }
 
+
+
         @media screen and (max-width: 70ch) {
             .header-content {
                 max-width: calc(70ch - 250px);
             }
         }
 
-        header {
-            background-color: #181825;
+        @media (prefers-color-scheme: light) {
+            header {
+                background-color: #f9f5d7;
+            }
+
+            .header-content a {
+                color: #7c6f64;
+            }
+
+            body {
+                background-color: #fbf1c7;
+                color: #3c3836;
+            }
+
+            article pre {
+                scrollbar-color: #7c6f64 #f9f5d7;
+            }
+
+            article a {
+                color: #458588;
+            }
+
+            article a:visited {
+                color: #b16286;
+            }
+
+            article h1 {
+                border-color: #3c383611;
+            }
+
+            body.js-disabled a.module-prompt {
+                color: #7c6f64;
+            }
         }
 
-        .header-content a {
-            color: #cdd6f4;
-        }
+        @media (prefers-color-scheme: dark) {
+            header {
+                background-color: #1d2021;
+            }
 
-        body {
-            background-color: #1e1e2e;
-            color: #cdd6f4;
-        }
+            .header-content a {
+                color: #a89984;
+            }
 
-        article pre {
-            scrollbar-color: #7c6f64 #f9f5d7;
-        }
+            body {
+                background-color: #282828;
+                color: #ebdbb2;
+            }
 
-        article a {
-            color: #89b4fa;
-        }
+            article pre {
+                scrollbar-color: #a89984 #282828;
+            }
 
-        article a:visited {
-            color: #cba6f7;
-        }
+            article a {
+                color: #458588;
+            }
 
-        article h1 {
-            border-color: #45475a;
-        }
+            article a:visited {
+                color: #b16286;
+            }
 
-        body.js-disabled a.module-prompt {
-            color: #bac2de;
-        }
+            article h1 {
+                border-color: #ebdbb211;
+            }
 
-        ::selection  {
-            color: #181825;
-            background-color: #cba6f7;
+            body.js-disabled a.module-prompt {
+                color: #a89984;
+            }
         }
     </style>
 </head>
@@ -243,16 +271,28 @@
     <div class="lds-ring hidden"><div></div><div></div><div></div><div></div></div>
 
     <script>
-        const colours = [
-            "#f38ba8",
-            "#a6e3a1",
-            "#f9e2af",
-            "#89b4fa",
-            "#cba6f7",
-            "#94e2d5",
-            "#fab387",
+        const darkColours = [
+            "#fb4934",
+            "#b8bb26",
+            "#fabd2f",
+            "#83a598",
+            "#d3869b",
+            "#8ec07c",
+            "#d65d0e",
         ];
-        const bg = "#1e1e2e";
+        const darkBg = "#1d2021";
+
+        const lightColours = [
+            "#9d0006",
+            "#79740e",
+            "#b57614",
+            "#076678",
+            "#8f3f71",
+            "#427b58",
+            "#d65d0e",
+        ];
+        const lightBg = "#f9f5d7";
+
 
         const size = 40;
         const cells = 5;
@@ -372,7 +412,13 @@
             location.reload();
         });
 
-        drawIdenticon(bg, colours);
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        function updateColours(e) {
+            if (e.matches) drawIdenticon(darkBg, darkColours);
+            else drawIdenticon(lightBg, lightColours);
+        }
+        mediaQuery.addEventListener('change', updateColours);
+        updateColours(mediaQuery);
 
         const header = document.querySelector("header");
         header.addEventListener("click", () => location.href = "/");
